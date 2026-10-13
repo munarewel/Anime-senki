@@ -21,7 +21,14 @@ jobs:
           gradle-version: '8.7'
       - name: Siapkan project
         run: bash setup.sh
+      - name: Pasang kunci tanda tangan tetap
+        env:
+          ANIME_KEYSTORE: ${{ secrets.ANIME_KEYSTORE }}
+        run: |
+          if [ -n "$ANIME_KEYSTORE" ]; then echo "$ANIME_KEYSTORE" | base64 -d > app/animesenki.keystore; echo "Kunci tetap dipakai"; else echo "PERINGATAN: secret ANIME_KEYSTORE belum diisi, APK tidak bisa menimpa versi lama"; fi
       - name: Build APK
+        env:
+          ANIME_KEY_PASS: ${{ secrets.ANIME_KEY_PASS }}
         run: |
           gradle :app:assembleDebug --no-daemon
           cp app/build/outputs/apk/debug/app-debug.apk AnimeSenki.apk
