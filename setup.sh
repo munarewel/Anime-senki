@@ -29,20 +29,8 @@ android {
         applicationId 'com.anime.senki'
         minSdk 21
         targetSdk 34
-        versionCode (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
-        versionName '1.' + (System.getenv('GITHUB_RUN_NUMBER') ?: '0')
-    }
-    // Kunci tetap dari GitHub Secrets: APK baru bisa menimpa APK lama tanpa dihapus.
-    if (file('animesenki.keystore').exists()) {
-        signingConfigs {
-            tetap {
-                storeFile file('animesenki.keystore')
-                storePassword System.getenv('ANIME_KEY_PASS')
-                keyAlias 'animesenki'
-                keyPassword System.getenv('ANIME_KEY_PASS')
-            }
-        }
-        buildTypes { debug { signingConfig signingConfigs.tetap } }
+        versionCode VCODE
+        versionName '1.VCODE'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -50,6 +38,8 @@ android {
     }
 }
 EOF
+
+sed -i "s/VCODE/${GITHUB_RUN_NUMBER:-1}/g" app/build.gradle
 
 cat > app/src/main/AndroidManifest.xml <<EOF
 <?xml version="1.0" encoding="utf-8"?>

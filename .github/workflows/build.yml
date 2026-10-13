@@ -30,7 +30,9 @@ jobs:
           printf '%s' "$ANIME_KEYSTORE" | tr -d ' \r\n\t' | base64 -d -i > app/animesenki.keystore 2>/dev/null || true
           echo "ukuran keystore: $(wc -c < app/animesenki.keystore) byte, panjang secret: ${#ANIME_KEYSTORE}"
           if [ -z "$ANIME_KEY_PASS" ]; then echo "::error title=Kunci::Secret ANIME_KEY_PASS kosong"; rm -f app/animesenki.keystore; exit 0; fi
-          if keytool -list -keystore app/animesenki.keystore -storepass "$ANIME_KEY_PASS" >/dev/null 2>&1; then echo "::notice title=Kunci::Kunci tetap OK"; else echo "::error title=Kunci::Keystore tidak valid atau password salah (panjang secret ${#ANIME_KEYSTORE}, ukuran $(wc -c < app/animesenki.keystore))"; rm -f app/animesenki.keystore; fi
+          if keytool -list -keystore app/animesenki.keystore -storepass "$ANIME_KEY_PASS" >/dev/null 2>&1; then
+            printf "\nandroid {\n  signingConfigs { tetap { storeFile file('animesenki.keystore'); storePassword '%s'; keyAlias 'animesenki'; keyPassword '%s' } }\n  buildTypes { debug { signingConfig signingConfigs.tetap } }\n}\n" "$ANIME_KEY_PASS" "$ANIME_KEY_PASS" >> app/build.gradle
+            echo "::notice title=Kunci::Kunci tetap OK"; else echo "::error title=Kunci::Keystore tidak valid atau password salah (panjang secret ${#ANIME_KEYSTORE}, ukuran $(wc -c < app/animesenki.keystore))"; rm -f app/animesenki.keystore; fi
       - name: Build APK
         env:
           ANIME_KEY_PASS: ${{ secrets.ANIME_KEY_PASS }}
