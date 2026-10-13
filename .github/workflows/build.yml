@@ -24,13 +24,22 @@ jobs:
       - name: Pasang kunci tanda tangan tetap
         env:
           ANIME_KEYSTORE: ${{ secrets.ANIME_KEYSTORE }}
+          ANIME_KEY_PASS: ${{ secrets.ANIME_KEY_PASS }}
         run: |
-          if [ -n "$ANIME_KEYSTORE" ]; then echo "$ANIME_KEYSTORE" | base64 -d > app/animesenki.keystore; echo "Kunci tetap dipakai"; else echo "PERINGATAN: secret ANIME_KEYSTORE belum diisi, APK tidak bisa menimpa versi lama"; fi
+          if [ -z "$ANIME_KEYSTORE" ]; then echo "::warning title=Kunci::Secret ANIME_KEYSTORE kosong, APK pakai kunci acak"; exit 0; fi
+          printf '%s' "$ANIME_KEYSTORE" | tr -d ' \r\n\t' | base64 -d -i > app/animesenki.keystore 2>/dev/null || true
+          echo "ukuran keystore: $(wc -c < app/animesenki.keystore) byte, panjang secret: ${#ANIME_KEYSTORE}"
+          if [ -z "$ANIME_KEY_PASS" ]; then echo "::error title=Kunci::Secret ANIME_KEY_PASS kosong"; rm -f app/animesenki.keystore; exit 0; fi
+          if keytool -list -keystore app/animesenki.keystore -storepass "$ANIME_KEY_PASS" >/dev/null 2>&1; then echo "::notice title=Kunci::Kunci tetap OK"; else echo "::error title=Kunci::Keystore tidak valid atau password salah (panjang secret ${#ANIME_KEYSTORE}, ukuran $(wc -c < app/animesenki.keystore))"; rm -f app/animesenki.keystore; fi
       - name: Build APK
         env:
           ANIME_KEY_PASS: ${{ secrets.ANIME_KEY_PASS }}
         run: |
-          gradle :app:assembleDebug --no-daemon
+          set -o pipefail
+          if ! gradle :app:assembleDebug --no-daemon 2>&1 | tee build.log; then
+            grep -E "error|What went wrong|FAILED|Exception|> " build.log | head -25 | while IFS= read -r l; do echo "::error title=gradle::$l"; done
+            exit 1
+          fi
           cp app/build/outputs/apk/debug/app-debug.apk AnimeSenki.apk
       - uses: softprops/action-gh-release@v2
         with:
